@@ -30,6 +30,15 @@ void onInterruptReceived(int signum)
     exit(0);
 }
 
+void onSigPipeReceived(int signum)
+{
+    (void)signum;
+    printf("[Client] Lost connection to the server, cleaning up resources...\n");
+    cleanup();
+    printf("[Client] Exit.\n");
+    exit(0);
+}
+
 int getRandomNumber(int from, int to)
 {
     return rand() % (to - from + 1) + from;
@@ -235,6 +244,13 @@ int main(int argc, char const** argv)
     // Register SIGINT handler.
     if (signal(SIGINT, onInterruptReceived) == SIG_ERR) {
         printf("[Client Error] Failed to register SIGINT handler: %s\n", strerror(errno));
+        return 1;
+    }
+
+    // Register SIGPIPE handler.
+    // SIGPIPE is sent when a socket's connection is lost.
+    if (signal(SIGPIPE, onSigPipeReceived) == SIG_ERR) {
+        printf("[Client Error] Failed to register SIGPIPE handler: %s\n", strerror(errno));
         return 1;
     }
 
