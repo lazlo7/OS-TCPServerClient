@@ -34,6 +34,15 @@ void onInterruptReceived(int signum)
     exit(0);
 }
 
+void onSigPipeReceived(int signum)
+{
+    (void)signum;
+    printf("[Server] Lost connection to a client, cleaning up resources...\n");
+    cleanup();
+    printf("[Server] Exit.\n");
+    exit(0);
+}
+
 void printUsage(char const* cmd)
 {
     printf("Usage: %s <server_port> [<server_ip>]\n", cmd);
@@ -70,6 +79,11 @@ int main(int argc, char const** argv)
     // Register SIGINT handler.
     if (signal(SIGINT, onInterruptReceived) == SIG_ERR) {
         printf("[Server Error] Failed to register SIGINT handler: %s\n", strerror(errno));
+        return 1;
+    }
+
+    if (signal(SIGPIPE, onSigPipeReceived) == SIG_ERR) {
+        printf("[Server Error] Failed to register SIGPIPE handler: %s\n", strerror(errno));
         return 1;
     }
 
