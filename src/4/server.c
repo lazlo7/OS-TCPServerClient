@@ -155,94 +155,60 @@ int main(int argc, char const** argv)
     // Handle clients.
     int item_price = 0;
     int exit_code = 0;
-    bool stealer_finished = false;
-    bool loader_finished = false;
-    bool observer_finished = false;
 
-    while (!stealer_finished || !loader_finished || !observer_finished) {
+    while (item_price >= 0) {
         printf("[Server] Waiting for data from Stealer...\n");
 
-        if (!stealer_finished) {
-            // Receive data from Stealer.
-            if (recv(stealer_sock, &item_price, sizeof(item_price), 0) == -1) {
-                printf("[Server Error] Failed to receive item price from Stealer: %s\n", strerror(errno));
-                exit_code = 1;
-                break;
-            }
-
-            if (item_price < 0) {
-                stealer_finished = true;
-            }
-
-            printf("[Server] Received data from Stealer, sending it Loader...\n");
+        // Receive data from Stealer.
+        if (recv(stealer_sock, &item_price, sizeof(item_price), 0) == -1) {
+            printf("[Server Error] Failed to receive item price from Stealer: %s\n", strerror(errno));
+            exit_code = 1;
+            break;
         }
 
-        if (!loader_finished) {
-            // Send the data to Loader.
-            if (send(loader_sock, &item_price, sizeof(item_price), 0) == -1) {
-                printf("[Server Error] Failed to send item price to Loader: %s\n", strerror(errno));
-                exit_code = 1;
-                break;
-            }
+        printf("[Server] Received data from Stealer, sending it Loader...\n");
 
-            // Receive acknowledgement from Loader.
-            if (recv(loader_sock, &buffer_char, sizeof(buffer_char), 0) == -1) {
-                printf("[Server Error] Failed to receive item acknowledgement from Loader: %s\n", strerror(errno));
-                exit_code = 1;
-                break;
-            }
+        // Send the data to Loader.
+        if (send(loader_sock, &item_price, sizeof(item_price), 0) == -1) {
+            printf("[Server Error] Failed to send item price to Loader: %s\n", strerror(errno));
+            exit_code = 1;
+            break;
         }
 
-        if (!stealer_finished) {
-            // Unblock Stealer after handing over the item only after
-            // we received an item acknowledgement from Loader.
-            if (send(stealer_sock, &buffer_char, sizeof(buffer_char), 0) == -1) {
-                printf("[Server Error] Failed to send unblocking notification to Stealer: %s\n", strerror(errno));
-                exit_code = 1;
-                break;
-            }
-
-            printf("[Server] Sent data to Loader, receiving data back from Loader...\n");
+        // Receive acknowledgement from Loader.
+        if (recv(loader_sock, &buffer_char, sizeof(buffer_char), 0) == -1) {
+            printf("[Server Error] Failed to receive item acknowledgement from Loader: %s\n", strerror(errno));
+            exit_code = 1;
+            break;
         }
 
-        if (!loader_finished) {
-            // Receive the data from Loader.
-            if (recv(loader_sock, &item_price, sizeof(item_price), 0) == -1) {
-                printf("[Server Error] Failed to receive item price from Loader: %s\n", strerror(errno));
-                exit_code = 1;
-                break;
-            }
-
-            if (item_price < 0) {
-                loader_finished = true;
-            }
-
-            printf("[Server] Received data from Loader, sending data to Observer...\n");
+        // Unblock Stealer after handing over the item only after
+        // we received an item acknowledgement from Loader.
+        if (send(stealer_sock, &buffer_char, sizeof(buffer_char), 0) == -1) {
+            printf("[Server Error] Failed to send unblocking notification to Stealer: %s\n", strerror(errno));
+            exit_code = 1;
+            break;
         }
 
-        if (!observer_finished) {
-            // Send the data to Observer.
-            if (send(observer_sock, &item_price, sizeof(item_price), 0) == -1) {
-                printf("[Server Error] Failed to send item price to Observer: %s\n", strerror(errno));
-                exit_code = 1;
-                break;
-            }
+        printf("[Server] Sent data to Loader, receiving data back from Loader...\n");
 
-            printf("[Server] Sent data to Observer!\n");
-
-            // Receive acknowledgement from Observer.
-            // Increase exit_Process_count on zero.
-            if (recv(observer_sock, &buffer_char, sizeof(buffer_char), 0) == -1) {
-                printf("[Server Error] Failed to receive acknowledgement from Observer: %s\n", strerror(errno));
-                exit_code = 1;
-                break;
-            }
-
-            printf("[Server] Received acknowledgement from Observer!\n");
-            if (buffer_char == 0) {
-                observer_finished = true;
-            }
+        // Receive the data from Loader.
+        if (recv(loader_sock, &item_price, sizeof(item_price), 0) == -1) {
+            printf("[Server Error] Failed to receive item price from Loader: %s\n", strerror(errno));
+            exit_code = 1;
+            break;
         }
+
+        printf("[Server] Received data from Loader, sending data to Observer...\n");
+
+        // Send the data to Observer.
+        if (send(observer_sock, &item_price, sizeof(item_price), 0) == -1) {
+            printf("[Server Error] Failed to send item price to Observer: %s\n", strerror(errno));
+            exit_code = 1;
+            break;
+        }
+
+        printf("[Server] Sent data to Observer!\n");
     }
 
     // Clean up resources.

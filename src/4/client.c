@@ -210,15 +210,6 @@ void emulateObserver(void)
             return;
         }
 
-        // Notify the server that we got the item.
-        // Simple send back byte '1' if we got the item with a positive price
-        // and '0' if we got the item with a negative price.
-        char char_buf = item_price > 0 ? 1 : 0;
-        if (send(server_sock, &char_buf, sizeof(char_buf), 0) == -1) {
-            printf("[Observer] Failed to notify server that we got the item: %s\n", strerror(errno));
-            return;
-        }
-
         // Break the loop if the new item price is negative
         if (item_price < 0) {
             printf("[Observer] No more items to observe, exiting\n");
